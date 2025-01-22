@@ -1,1 +1,2 @@
 # Getting Started
+The only current requirement to run the code after cloning is to create a `data` directory in the cloned repo. Changes in `data` will not be tracked, as can be seen in the [.gitignore file](.gitignore). Please be mindful of case sensitivity. The directory should be named `data`.
