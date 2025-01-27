@@ -34,6 +34,12 @@ class Parameters:
         self.b_max = np.max(b_grid)
         self.nb = len(b_grid)
         self.nz = len(z_grid)
+        self.x_grid = np.array([0, 1])
+        self.nx = len(self.x_grid)
+    
+    def U(self, I, P_c, P_n, P_h):
+        denom = (P_c ** self.tau) * (P_n ** self.eta) * (P_h ** (1 - self.tau - self.eta))
+        return np.log(I / denom)
 
 
 
