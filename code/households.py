@@ -1,7 +1,9 @@
 import numpy as np
+import scipy.interpolate as spi
+import scipy.optimize as spo
 
 
-def solve_household(p, P_c, P_n, P_h, w, i):
+def solve_household(p, P_c, P_n, P_h, w, i, f):
     '''
     This function solves the household problem.
     
@@ -12,30 +14,60 @@ def solve_household(p, P_c, P_n, P_h, w, i):
         P_h (array): housing prices
         w (array): wages
         i (float): interest rate
+        f (float): fixed cost of education
     
     Returns:
         V (array): value function
-        psi (array): policy function
+        b_policy (array): saving policy function
+        x_policy (array): education policy function
+        r_probs (array): location choice probabilities
     '''
+    v_tilde = np.zeros(p.T, p.R, p.R, p.nz, p.nx, p.nx, p.nb)   # indirect utility given education and location choice
+    v = np.zeros(p.T, p.R, p.R, p.nz, p.nx, p.nb)               # indirect utility given location choice
+    EV = np.zeros(p.T, p.R, p.nz, p.nx, p.nb)                   # expected value over location choice
+    b_policy_tilde = np.zeros_like(v_tilde)                     # saving policy given education and location choice
+    b_policy = np.zeros_like(v)                                 # saving policy given location choice
+    x_policy = np.zeros_like(v)                                 # education policy given location choice
+    r_probs = np.zeros_like(v)                                  # location choice probabilities
 
-    V = np.zeros(p.T, p.R, p.nb, p.nz, p.nx)
-    b_policy = np.zeros(p.T, p.R, p.nb, p.nz, p.nx)
-    r_probs = np.zeros(p.T, p.R, p.R, p.nb, p.nz, p.nx)
 
     # start at the end of life - assume V_{t+1} = 0
-    I = np.zeros(p.R, p.R, p.nb, p.nz, p.nx)
-    v = np.zeros(p.R, p.R, p.nb, p.nz, p.nx)
     for j in range(p.R):
-        for r in range(p.R):
-            for (b_index, b) in enumerate(p.b_grid):
-                for (z_index, z) in enumerate(p.z_grid):
-                    for x in p.x_grid: # uses that x = 0 or 1 (x index == x)
-                        I[j, r, b_index, z_index, x] = w[r] * np.exp(p.theta * x) * z * p.Delta[j, r] + b * (1 + i)
-                        v[j, r, b_index, z_index, x] = p.U(I[j, r, b_index, z_index, x], P_c[r], P_n[r], P_h[r])
+        for (z_index, z) in enumerate(p.z_grid):
+            for x in p.x_grid: # uses that x = 0 or 1 (x index == x)
+                for (b_index, b) in enumerate(p.b_grid):
+                    for r in range(p.R):
+                        x_policy[-1, j, r, z_index, x, b_index] = x
+                        budget = w[r] * p.age_eff[-1] * np.exp(p.theta * x) * z * p.Delta[j, r] + (1 + i)*b
+                        v[-1, j, r, z_index, x, b_index] = p.U(budget, P_c[r], P_n[r], P_h[r])
+                    
+                    r_probs[-1, j, :, z_index, x, b_index] = p.extr_val_prob(v[-1, j, :, z_index, x, b_index])
+                    EV[-1, j, z_index, x, b_index] = p.calc_EV_A(v[-1, j, :, z_index, x, b_index])
 
-    for j in range(p.R):
-        for r in range(p.R):
-            for (b_index, b) in enumerate(p.b_grid):
-                for (z_index, z) in enumerate(p.z_grid):
-                    for x in p.x_grid: # uses that x = 0 or 1 (x index == x)
-                        r_probs[-1, j, r, b_index, z_index, x] = np.exp(v[j, r, b_index, z_index, x] / np.sum(v[j, :, b_index, z_index, x]))
+    # iterate backwards
+    for t in range(p.T - 2, -1, -1):
+        for j in range(p.R):
+            for (z_index, z) in enumerate(p.z_grid):
+                for x in p.x_grid:
+                    for (b_index, b) in enumerate(p.b_grid):
+                        for r in range(p.R):
+                            for x_prime in p.x_grid:
+                                EV_ipt = spi.CubicSpline(p.b_grid, 
+                                                         p.Pi[z_index,:] @ EV[t+1, r, : , x_prime, :])
+                                budget = w[r] * p.age_eff[t] * np.exp(p.theta * x) * z * p.Delta[j, r] + (1 + i)*b + f*(x_prime - x)
+                                obj = lambda b_prime: -p.U(budget - b_prime, P_c[r], P_n[r], P_h[r]) - p.beta * EV_ipt(b_prime)
+                                res = spo.minimize_scalar(obj, bounds=(p.b_min, p.b_max))
+                                if res.success:
+                                    b_policy_tilde[t, j, r, z_index, x, x_prime, b_index] = res.x
+                                    v_tilde[t, j, r, z_index, x, x_prime, b_index] = -res.fun
+                                else:
+                                    raise ValueError('Optimization failed')
+                                
+                            if x==1:
+                                x_policy[t, j, r, z_index, x, b_index] = 1
+                            else: # check which x_prime is optimal
+                                x_policy[t, j, r, z_index, x, b_index] = np.argmax(v_tilde[t, j, r, z_index, x, :, b_index])
+                                v[t, j, r, z_index, x, b_index] = np.max(v_tilde[t, j, r, z_index, x, :, b_index])
+
+                        r_probs[t, j, :, z_index, x, b_index] = p.extr_val_prob(v[t, j, :, z_index, x, b_index])
+                        EV[t, j, z_index, x, b_index] = p.calc_EV_A(v[t, j, :, z_index, x, b_index])

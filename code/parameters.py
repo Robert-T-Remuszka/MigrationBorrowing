@@ -12,7 +12,8 @@ class Parameters:
                  chi,       # location preference shape parameter (float)
                  alpha_r,   # location preference scale parameter (array)
                  beta,      # discount factor (float)
-                 z_grid,    # grid for productivity (array)
+                 z_grid,  # grid for productivity shocks (array)
+                 age_eff,   # age effect on productivity (array)
                  Pi,        # productivity transition matrix (array)
                  theta,     # education augementation parameter (float)
                  Delta,     # symmetric moving cost matrix (array)
@@ -26,6 +27,7 @@ class Parameters:
         self.alpha_r = alpha_r
         self.beta = beta
         self.z_grid = z_grid
+        self.age_eff = age_eff
         self.Pi = Pi
         self.theta = theta
         self.Delta = Delta
@@ -37,12 +39,19 @@ class Parameters:
         self.x_grid = np.array([0, 1])
         self.nx = len(self.x_grid)
     
-    def U(self, I, P_c, P_n, P_h):
+    def U(self, I, P_c, P_n, P_h, eps=1e-4):
         denom = (P_c ** self.tau) * (P_n ** self.eta) * (P_h ** (1 - self.tau - self.eta))
-        return np.log(I / denom)
-
-
-
-
-
-                 
+        x = I / denom
+        if x < eps: # use a Taylor expansion around epsilon to avoid log(0)
+            return np.log(eps) + (x - eps) / eps
+        else:
+            return np.log(x)
+        
+    def extr_val_prob(self, v_flat, r=None):
+        if r is None:
+            return np.exp(self.chi * v_flat) / np.sum(np.exp(self.chi * v_flat))
+        else:
+            return np.exp(self.chi * v_flat[r]) / np.sum(np.exp(self.chi * v_flat))
+    
+    def calc_EV_A(self, v_flat):
+        return (np.euler_gamma + np.log(np.sum(np.exp(self.chi * v_flat)))) / self.chi 
