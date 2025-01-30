@@ -22,13 +22,13 @@ def solve_household(p, P_c, P_n, P_h, w, i, f):
         x_policy (array): education policy function
         r_probs (array): location choice probabilities
     '''
-    v_tilde = np.zeros(p.T, p.R, p.R, p.nz, p.nx, p.nx, p.nb)   # indirect utility given education and location choice
-    v = np.zeros(p.T, p.R, p.R, p.nz, p.nx, p.nb)               # indirect utility given location choice
-    EV = np.zeros(p.T, p.R, p.nz, p.nx, p.nb)                   # expected value over location choice
-    b_policy_tilde = np.zeros_like(v_tilde)                     # saving policy given education and location choice
-    b_policy = np.zeros_like(v)                                 # saving policy given location choice
-    x_policy = np.zeros_like(v)                                 # education policy given location choice
-    r_probs = np.zeros_like(v)                                  # location choice probabilities
+    v_tilde = np.zeros((p.T, p.R, p.R, p.nz, p.nx, p.nx, p.nb))   # indirect utility given education and location choice
+    v = np.zeros((p.T, p.R, p.R, p.nz, p.nx, p.nb))               # indirect utility given location choice
+    EV = np.zeros((p.T, p.R, p.nz, p.nx, p.nb))                   # expected value over location choice
+    b_policy_tilde = np.zeros_like(v_tilde)                       # saving policy given education and location choice
+    b_policy = np.zeros_like(v)                                   # saving policy given location choice
+    x_policy = np.zeros_like(v, dtype=int)                        # education policy given location choice
+    r_probs = np.zeros_like(v)                                    # location choice probabilities
 
 
     # start at the end of life - assume V_{t+1} = 0
@@ -65,9 +65,14 @@ def solve_household(p, P_c, P_n, P_h, w, i, f):
                                 
                             if x==1:
                                 x_policy[t, j, r, z_index, x, b_index] = 1
+                                b_policy[t, j, r, z_index, x, b_index] = b_policy_tilde[t, j, r, z_index, x, 1, b_index]
+                                v[t, j, r, z_index, x, b_index] = v_tilde[t, j, r, z_index, x, 1, b_index]
                             else: # check which x_prime is optimal
                                 x_policy[t, j, r, z_index, x, b_index] = np.argmax(v_tilde[t, j, r, z_index, x, :, b_index])
+                                b_policy[t, j, r, z_index, x, b_index] = b_policy_tilde[t, j, r, z_index, x, x_policy[t, j, r, z_index, x, b_index], b_index]
                                 v[t, j, r, z_index, x, b_index] = np.max(v_tilde[t, j, r, z_index, x, :, b_index])
-
+                        
                         r_probs[t, j, :, z_index, x, b_index] = p.extr_val_prob(v[t, j, :, z_index, x, b_index])
                         EV[t, j, z_index, x, b_index] = p.calc_EV_A(v[t, j, :, z_index, x, b_index])
+
+    return v, b_policy, x_policy, r_probs, EV

@@ -10,7 +10,6 @@ class Parameters:
                  tau,       # consumption weight (float)
                  eta,       # nontrables weight (float)
                  chi,       # location preference shape parameter (float)
-                 alpha_r,   # location preference scale parameter (array)
                  beta,      # discount factor (float)
                  z_grid,  # grid for productivity shocks (array)
                  age_eff,   # age effect on productivity (array)
@@ -24,7 +23,6 @@ class Parameters:
         self.tau = tau
         self.eta = eta
         self.chi = chi
-        self.alpha_r = alpha_r
         self.beta = beta
         self.z_grid = z_grid
         self.age_eff = age_eff
@@ -36,7 +34,7 @@ class Parameters:
         self.b_max = np.max(b_grid)
         self.nb = len(b_grid)
         self.nz = len(z_grid)
-        self.x_grid = np.array([0, 1])
+        self.x_grid = np.array([0, 1], dtype=int)
         self.nx = len(self.x_grid)
     
     def U(self, I, P_c, P_n, P_h, eps=1e-4):
