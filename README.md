@@ -1,2 +1,8 @@
 # Getting Started
-The only current requirement to run the code after cloning is to create a `data` directory in the cloned repo. Changes in `data` will not be tracked, as can be seen in the [.gitignore file](.gitignore). Please be mindful of case sensitivity. The directory should be named `data`.
+You will need to create a few folders in the project directory to ensure that directory stucture matches the relative file paths in the code. Here is a list of "to do's" before running the code.
+1. Create a data folder in your cloned repo
+2. Create a file called `"credentials.py"` and place it in the code folder. This is where you will keep things like your apikey. In that file write
+```python
+apikeys = {'ipumskey':'YOUR IPUMS API KEY'}
+```
+and swap out the `'YOUR IPUMS API KEY'` with, well, your Ipums api key!

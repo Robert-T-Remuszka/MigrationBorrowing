@@ -4,7 +4,7 @@ from credentials import *
 from paths import *
 from pathlib import Path
 from ipumspy import IpumsApiClient, MicrodataExtract, readers, ddi
-IPUMS_API_KEY = apikeys['robipumskey']
+IPUMS_API_KEY = apikeys['ipumskey']
 ipums = IpumsApiClient(IPUMS_API_KEY)
 datadir = Path(ProjectPaths['data'])
 
