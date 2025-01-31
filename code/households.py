@@ -38,7 +38,7 @@ def solve_household(p, P_c, P_n, P_h, w, i, f):
                 for (b_index, b) in enumerate(p.b_grid):
                     for r in range(p.R):
                         x_policy[-1, j, r, z_index, x, b_index] = x
-                        budget = w[r] * p.age_eff[-1] * np.exp(p.theta * x) * z * p.Delta[j, r] + (1 + i)*b
+                        budget = w[r] * p.age_eff[-1] * np.exp(p.theta * x) * z - p.Delta[j, r] + (1 + i)*b
                         v[-1, j, r, z_index, x, b_index] = p.U(budget, P_c[r], P_n[r], P_h[r])
                     
                     r_probs[-1, j, :, z_index, x, b_index] = p.extr_val_prob(v[-1, j, :, z_index, x, b_index])
@@ -54,7 +54,7 @@ def solve_household(p, P_c, P_n, P_h, w, i, f):
                             for x_prime in p.x_grid:
                                 EV_ipt = spi.CubicSpline(p.b_grid, 
                                                          p.Pi[z_index,:] @ EV[t+1, r, : , x_prime, :])
-                                budget = w[r] * p.age_eff[t] * np.exp(p.theta * x) * z * p.Delta[j, r] + (1 + i)*b + f*(x_prime - x)
+                                budget = w[r] * p.age_eff[t] * np.exp(p.theta * x) * z - p.Delta[j, r] + (1 + i)*b + f*(x_prime - x)
                                 obj = lambda b_prime: -p.U(budget - b_prime, P_c[r], P_n[r], P_h[r]) - p.beta * EV_ipt(b_prime)
                                 res = spo.minimize_scalar(obj, bounds=(p.b_min, p.b_max))
                                 if res.success:
