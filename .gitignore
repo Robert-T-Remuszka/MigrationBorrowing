@@ -1,4 +1,10 @@
+# Directories
 /data
 /lit
 /notes
 /output
+
+# Files
+/code/credentials.py
+settings.json
+*.pyc
